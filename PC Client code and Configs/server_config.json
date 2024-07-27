@@ -1,7 +1,7 @@
 {
     "VestConfig": [
         {
-            "VestHostname": "!_!_!_RASPI/arduino IP HERE_!_!_!"
+            "VestHostname": "192.168.1.245"
         },
         {
             "VestPort": "1025"
@@ -10,7 +10,7 @@
             "BufferLength": "50"
         },
         {
-            "MotorLimits": "[0.2, 1.0]"
+            "MotorLimits": "[0.05, 0.60]"
         }
     ]
 }

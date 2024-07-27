@@ -12,8 +12,8 @@
 
 
 // WiFi stuff
-const char* ssid = "your-ssid";
-const char* pwd = "your-password";
+const char* ssid = "SlimeServer";
+const char* pwd = "95815480";
 // for ArduinoOSC
 const int recv_port = 1025;
 #define INVERSE_LED true;
@@ -33,7 +33,7 @@ bool ledState = false;
 PCA9685 pwmController;
 
 //Motor Index Mapping (index used to send motor data to correct motor)
-int motorMap [] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31};
+int motorMap [] = {15,14,13,12,0,9,8,3,1,2,10,11,0,0,0,0,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31};
 
 
 void setup() {
@@ -148,6 +148,7 @@ void handle_values(String args){
       temp = "";
     }
   }
+  //Serial.print("[");
   valArray[index] = floatToDuty(temp.toFloat());
   for (int i = 0; i < 32; i++) {
     pwmController.setChannelPWM(i, valArray[i]);
