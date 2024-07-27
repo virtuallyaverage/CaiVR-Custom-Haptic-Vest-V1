@@ -49,8 +49,7 @@ toPrint = False
 buffered_array = [float(0)] * TotalMotors      #creates array of empty floats w/ specified amount of motor slots
 def motor_handler(address, *args):
     global buffered_array
-    #global toPrint
-    #toPrint = True
+
     if "Front" in address or "Back" in address :
         motor_index = int(re.search(r'\d+', address).group())
         motor_val = float(re.search(r"\d+\.\d+", f"{args}").group())
@@ -66,15 +65,12 @@ def motor_handler(address, *args):
         for i in range(TotalMotors):
             if buffered_array[i] < Motor_array[i]:
                 buffered_array[i] = Motor_array[i]
-
+       
 #Async loop sends motor values after allowing them to be buffered for buffer_length
 async def buffer():
     while True:
-        global buffered_array
-        #global toPrint
-        #if toPrint == True:
-        #    print(f"Buffer{buffered_array}")
-        #    toPrint = False
+        global buffered_array, last_time, vest_connected
+
         vest.send_message("/h", f"{buffered_array}")  # Sends buffered values
         buffered_array = [float(0)] * TotalMotors # resets buffer for next pass
         await asyncio.sleep(buffer_length)
@@ -82,7 +78,7 @@ async def buffer():
 
 
 dispatcher = Dispatcher()
-dispatcher.map("/avatar/parameters/*", motor_handler)       #handles haptic data after json is jogged
+dispatcher.map("/avatar/parameters/h/*", motor_handler)       #handles haptic data after json is jogged
 #dispatcher.map("/avatar/Haptics*", motor_handler)       #handles haptic data after json is jogged
 #dispatcher.set_default_handler(default_handler)         #any other messages
 
@@ -92,7 +88,7 @@ port = 9001
 async def init_main():
     server = osc_server.AsyncIOOSCUDPServer((ip, port), dispatcher, asyncio.get_event_loop())
     transport, protocol = await server.create_serve_endpoint()  # Create datagram endpoint and start serving
-
+    
     await buffer()  # Enter main loop of program
 
     transport.close()  # Clean up serve endpoint

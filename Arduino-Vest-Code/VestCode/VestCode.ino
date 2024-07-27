@@ -16,6 +16,19 @@ const char* ssid = "your-ssid";
 const char* pwd = "your-password";
 // for ArduinoOSC
 const int recv_port = 1025;
+#define INVERSE_LED true;
+
+//flag if we have seen the server before
+bool is_server_connected = false;
+
+//led blinking 
+#define CONNECTED_TIME_ON 1000
+#define CONNECTED_TIME_OFF 1000
+#define DISCONNECTED_TIME_ON 1000
+#define DISCONNECTED_TIME_OFF 1000
+unsigned long ledTicker = millis();
+bool ledState = false;
+
 
 PCA9685 pwmController;
 
@@ -30,9 +43,12 @@ void setup() {
   Wire.begin();
   pwmController.init();
 
-  delay(2000);
+  pinMode(LED_BUILTIN, OUTPUT);
+  blinkLED();
 
-  Serial.println("Program: VestCode");
+  delay(1000);
+
+  Serial.println("\n\nProgram: VestCode");
 
   // WiFi stuff (no timeout setting for WiFi)
 #if defined(ESP_PLATFORM) || defined(ARDUINO_ARCH_RP2040)
@@ -60,9 +76,13 @@ void setup() {
   }
   Serial.print("WiFi connected, IP = ");
   Serial.println(WiFi.localIP());
+
+  Serial.print("Mac Adress: ");
+  Serial.println(WiFi.macAddress());
+  
   // subscribe osc messages
   OscWiFi.subscribe(recv_port, "/h", onOscReceived);
-  Serial.print("starting server");
+  Serial.println("starting server");
 
 //ignore this, its literally just the startup chime
   for (int i = 0; i < 16; i++) {
@@ -76,8 +96,8 @@ void setup() {
   }
   delay(50);
   for (int i = 0; i < 16; i++) {
-  pwmController.setChannelPWM(i, floatToDuty(0.6));
-  pwmController.setChannelPWM(i+16, floatToDuty(0.6));
+    pwmController.setChannelPWM(i, floatToDuty(0.6));
+    pwmController.setChannelPWM(i+16, floatToDuty(0.6));
   }
   delay(150);
   for (int i = 0; i < 16; i++) {
@@ -102,6 +122,12 @@ uint16_t floatToDuty(float e){
 
 void onOscReceived(const OscMessage& m) {
   handle_values(m.arg<String>(0));
+
+  //show if we have connected to the server
+  if (!is_server_connected) {
+    Serial.println("First Packet Recieved From Server");
+    is_server_connected = true;
+  }
 }
 
 
@@ -125,9 +151,42 @@ void handle_values(String args){
   valArray[index] = floatToDuty(temp.toFloat());
   for (int i = 0; i < 32; i++) {
     pwmController.setChannelPWM(i, valArray[i]);
+    //Serial.print(valArray[i]);
+    //Serial.print(", ");
   }
+  //Serial.println("]");
+}
+
+void blinkLED() {
+  unsigned long time_now = millis();
+  if (is_server_connected) {
+    if (ledState && ((time_now-ledTicker) >= CONNECTED_TIME_ON)) {
+      ledState = false;
+      digitalWrite(LED_BUILTIN, ledState);
+      ledTicker = millis();
+
+    } else if (ledState && ((time_now-ledTicker) >= CONNECTED_TIME_OFF)) {
+      ledState = true;
+      digitalWrite(LED_BUILTIN, ledState);
+      ledTicker = millis();
+    } //light state should not be changed yet
+
+  } else {
+    if (ledState && time_now-ledTicker >= DISCONNECTED_TIME_ON) {
+      ledState = false;
+      digitalWrite(LED_BUILTIN, ledState);
+      ledTicker = millis();
+
+    } else if (ledState && time_now-ledTicker >= DISCONNECTED_TIME_OFF) {
+      ledState = true;
+      digitalWrite(LED_BUILTIN, ledState);
+      ledTicker = millis();
+    } //light state should not be changed yet
+  }
+
 }
 
 void loop() {
     OscWiFi.parse(); // to receive osc
+    blinkLED();
 }
